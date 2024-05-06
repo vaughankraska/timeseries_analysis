@@ -1,0 +1,43 @@
+---
+title: "Transfer Function Modeling with R"
+author: "Finn Vaughankraska"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+# libraries
+library(knitr)
+library(forecast)  # For ARIMA and forecasting
+library(ggplot2)   # For plotting
+library(dplyr)     # For data manipulation
+
+set.seed(123)
+```
+
+# Introduction
+In this report, we will demonstrate how to implement a transfer function model in R using the forecast package. Transfer functions model the relationship between an output time series and one or more input time series, accounting for potential lags and other dynamics...
+
+# Exploratory Analysis
+llorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.orem ipsum.
+```{r qplot, fig.width=4, fig.height=3, message=FALSE}
+summary(cars)
+qplot(speed, dist, data=cars) + geom_smooth()
+```
+lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.
+
+# Baseline Model
+
+# Model Implementing Transfer Functions
+
+# Results and Comparisons
+Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. 
+
+Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. 
+
+Here are some key results that might be very insightful. Here are some key results that might be very insightful. Here are some key results that might be very insightful. 
+
+# Conclusion
+lorem ipsum
