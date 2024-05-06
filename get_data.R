@@ -12,7 +12,7 @@ site <- whatNWISsites(
 site
 
 # read the text file from gallatin water data
-gal_data = read.delim("gallatin_water.txt", 
+gal_data = read.delim("data/gallatin_water.txt", 
                       sep = "\t", 
                       header = FALSE, 
                       skip = 30,
@@ -32,13 +32,10 @@ endDate = gal_data$datetime[dim(gal_data)[1]]
 ###################
 # Get weather data
 # source: https://www.ncei.noaa.gov/access/search/data-search/daily-summaries?pageNum=1&startDate=1989-08-01T23:59:59&endDate=2024-05-04T00:00:00&bbox=45.864,-111.415,45.195,-110.932
-weather_data <- read.csv("weather_MSU.csv", header = TRUE)
+weather_data <- read.csv("data/weather_MSU.csv", header = TRUE)
 weather_data$DATE <- as.Date(weather_data$DATE, format="%Y-%m-%d")
 weather_data <- weather_data[order(weather_data$DATE),]
-keep_cols = c("DATE", "PRCP", "SNOW",
-              "TMAX", "TMIN", "AWBT", "AWND", "FMTM", "RHAV", "RHMN",
-              "RHMX"
-)
+keep_cols = c("DATE", "PRCP", "SNOW", "TMAX", "TMIN")
 weather_data <- weather_data[keep_cols]
 str(weather_data)
 
@@ -49,6 +46,13 @@ merged_df = merge(gal_data, weather_data,
                   by.y = "DATE",
                   all.x = TRUE
                   )
-merged_df$SNOW = replace(merged_df$SNOW, is.na(merged_df$SNOW), 0)
-merged_df$PRCP = replace(merged_df$PRCP, is.na(merged_df$PRCP), 0)
+merged_df$SNOW <-replace(merged_df$SNOW, is.na(merged_df$SNOW), 0)
+merged_df$PRCP <-replace(merged_df$PRCP, is.na(merged_df$PRCP), 0)
+merged_df$TMAX <-zoo::na.approx(merged_df$TMAX, na.rm=FALSE)
+merged_df$TMIN <-zoo::na.approx(merged_df$TMIN, na.rm=FALSE)
 sapply(merged_df, function(x) sum(is.na(x)))
+
+df_final <- head(merged_df, -2)
+sapply(df_final, function(x) sum(is.na(x)))
+# Save file as final data
+saveRDS(df_final, "data/data_final.rds")
