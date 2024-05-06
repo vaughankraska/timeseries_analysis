@@ -4,8 +4,6 @@ library(forecast)
 library(tseries)
 
 data <- readRDS("data/data_final.rds")
-# Add interaction variable between max temp and precipitation
-data$TMAX_PRCP = data$TMAX * data$PRCP
 str(data)
 
 ggplot(data, aes(x=datetime, y=cfs)) +

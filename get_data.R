@@ -54,5 +54,8 @@ sapply(merged_df, function(x) sum(is.na(x)))
 
 df_final <- head(merged_df, -2)
 sapply(df_final, function(x) sum(is.na(x)))
+
+# Add interaction variable between max temp and precipitation
+df_final$TMAX_PRCP = df_final$TMAX * df_final$PRCP
 # Save file as final data
 saveRDS(df_final, "data/data_final.rds")
