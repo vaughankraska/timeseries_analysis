@@ -138,6 +138,60 @@ tsdiag(m_final)
 
 ####################
 # Try using the TSA package instead in case I made a model error above
+rm(list = ls())
+library(TSA)
+library(ggplot2)
+
+data = readRDS("data/data_final.rds")
+x <- ts(data$PRCP, start = data$datetime[1], frequency = 365)
+
+
+acf(x, lag.max = 365)
+pacf(x, lag.max = 365)
+ccf(diff(data$PRCP, lag = 365), diff(data$cfs, lag = 365))
+
+# BEGIN Transfer Models using TSA Package
+y <- diff(data$cfs, lag = 365)
+x <- diff(data$PRCP, lag = 365) # same transform as when I estimated the model
+n <- length(y)
+r <- 0
+s <- 5
+
+model <- TSA::arima(
+  y,
+  order = c (3, 0, 1),
+  #seasonal = list(order = c(0, 1, 0), period)
+  xtransf = x,
+  transfer = list(c(r, s)), # our (r, s)
+  include.mean = FALSE,
+  method = "ML"
+); lmtest::coeftest(model)
+# barplot(coef(model)[-(1:2)], las = 2, col = "blue")
+# tsdiag(model, gof.lag = 80, na.action = na.pass)
+u_t <- ts(model$residuals[seq(max(s, r)+1, n)])
+plot(u_t)
+acf(u_t)
+pacf(u_t)
+
+model_e <- stats::arima(
+  u_t,
+  order = c(1, 0, 0),
+  seasonal = list(order = c(0L, 0L, 0L), period = NA),
+); lmtest::coeftest(model_e)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
