@@ -50,7 +50,8 @@ model <- arima(diff(x, lag=365), order = c(3, 0, 1), include.mean = FALSE)
 tsdiag(model, gof.lag = 40)
 
 ###### whiten the output
-y <- data$cfs
+y <- diff(data$cfs, lag = 365)
+x <- diff(data$TMIN, lag = 365) # same transform as when I estimated the model
 phi1 <- as.numeric(model$coef[1])
 phi2 <- as.numeric(model$coef[2])
 phi3 <- as.numeric(model$coef[3])
@@ -68,7 +69,7 @@ n <- length(y)
 ytilde1 <- ytilde[seq(4, n)]
 w1 <- w[seq(4, n)]
 
-# Apply MA(1) correction
+# apply MA(1) 
 ytilde1 <- ytilde1 - theta1 * lag(ytilde1, k = 1)
 w1 <- w1 - theta1 * lag(w1, k = 1)
 
@@ -77,7 +78,37 @@ ytilde1 <- ytilde1[-1]
 w1 <- w1[-1]
 
 # Compute cross-correlation
-ccf(ytilde1, w1, ylab = "CCF")
+ccf_res <- ccf(ytilde1, w1, ylab = "CCF", lag.max = 40)
+plot(ccf_res, xaxt = 'n'); axis(1, at = seq(-40, 40, by = 2))
+# concerning that we have a significant corr at lag=-1
+# but otherwise it looks good, there are significant leaders at 0, 1, 2
+# and it decays a bit, has me thinking models similar to:
+# yt = y0...y3 + x0...x3
+
+#############
+# explore regressions now
+max_behind <- 3
+y0 <- y[seq(max_behind, n)]
+y1 <- y[seq(max_behind-1, n-1)]
+y2 <- y[seq(max_behind-2, n-2)]
+
+x0 <- x[seq(max_behind, n)]
+x1 <- x[seq(max_behind-1, n-1)]
+x2 <- x[seq(max_behind-2, n-2)]
+
+r_model <- lm(formula = y0 ~ x2 + y1 + y2 - 1)
+summary(r_model)
+
+# chosen regression model: 
+# yt = -0.148*xt-2 +  1.387 * yt-1 + -0.446 * yt-2 + u_t
+# with u_t = (1 - 1.387B + 0.446B^2)ηt
+u_t <- r_model$residuals
+omega_filter <- c(r_model$coef[2], r_model$coef[3], 0, 0)
+eta_t <- stats::filter(u_t, filter = omega_filter, method = "recursive")
+plot(eta_t)
+acf(eta_t)
+pacf(eta_t)
+
 
 
 
