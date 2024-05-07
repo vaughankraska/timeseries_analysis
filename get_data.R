@@ -41,21 +41,41 @@ str(weather_data)
 
 ###################
 # merge datasets
-merged_df = merge(gal_data, weather_data, 
+merged_df <- merge(gal_data, weather_data, 
                   by.x = "datetime", 
                   by.y = "DATE",
                   all.x = TRUE
                   )
+
+# replace missing values with nearby weather station
+alt_weather <- read.csv("data/alt_weather.csv", header = TRUE)
+alt_weather <- alt_weather[c("DATE", "PRCP", "TMAX", "TMIN")]
+colnames(alt_weather) <- c("DATE", "APRCP", "ATMAX", "ATMIN")
+alt_weather$DATE <- as.Date(alt_weather$DATE, format = "%Y-%m-%d")
+
+merged_df <- merge(merged_df, alt_weather, 
+                   by.x = "datetime", by.y = "DATE", 
+                   all.x = TRUE)
+merged_df <- merged_df %>%
+  dplyr::mutate(
+    PRCP = dplyr::coalesce(PRCP, APRCP),
+    TMIN = dplyr::coalesce(TMIN, ATMIN),
+    TMAX = dplyr::coalesce(TMAX, ATMAX)
+  ) %>%
+  dplyr::select(datetime, cfs, PRCP, TMAX, TMIN, SNOW) 
+
 merged_df$SNOW <-replace(merged_df$SNOW, is.na(merged_df$SNOW), 0)
-merged_df$PRCP <-replace(merged_df$PRCP, is.na(merged_df$PRCP), 0)
-merged_df$TMAX <-zoo::na.approx(merged_df$TMAX, na.rm=FALSE)
-merged_df$TMIN <-zoo::na.approx(merged_df$TMIN, na.rm=FALSE)
-sapply(merged_df, function(x) sum(is.na(x)))
+# merged_df$PRCP <-replace(merged_df$PRCP, is.na(merged_df$PRCP), 0)
+# merged_df$TMAX <-zoo::na.approx(merged_df$TMAX, na.rm=FALSE)
+# merged_df$TMIN <-zoo::na.approx(merged_df$TMIN, na.rm=FALSE)
+# sapply(merged_df, function(x) sum(is.na(x)))
 
 df_final <- head(merged_df, -2)
 sapply(df_final, function(x) sum(is.na(x)))
 
 # Add interaction variable between max temp and precipitation
 df_final$TMAX_PRCP = df_final$TMAX * df_final$PRCP
+df_final$TMIN_PRCP = df_final$TMIN * df_final$PRCP
 # Save file as final data
 saveRDS(df_final, "data/data_final.rds")
+

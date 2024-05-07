@@ -75,7 +75,7 @@ acf(df, main="ACF", lag.max = 370)
 pacf(df, main="PACF", lag.max = 370)
 
 model <- auto.arima(df, num.cores = 16)
-tsdiag(model)
+tsdiag(model, gof.lag = 40)
 # best I could do model:
 # diff 365
 #Series: df 
@@ -176,7 +176,7 @@ ggsave(
 
 
 #### Correlation between vars:
-cor_matrix <- cor(data[c("cfs", "PRCP", "SNOW", "TMAX", "TMIN", "TMAX_PRCP")], use = "complete.obs")
+cor_matrix <- cor(data[c("cfs", "PRCP", "SNOW", "TMAX", "TMIN", "TMAX_PRCP", "TMIN_PRCP")], use = "complete.obs")
 cor_with_y <- cor_matrix["cfs", ]
 cor_with_y
 
