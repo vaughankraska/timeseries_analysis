@@ -8,8 +8,8 @@ ggplot(data %>%
          dplyr::filter(datetime >= as.Date("2015-03-01")) %>%
          dplyr::filter(datetime <= as.Date("2015-07-01")),
        aes(x = datetime)) +
-  geom_line(aes(y = cfs, color = "blue"), size = 1) +  # Line for cfs
-  geom_line(aes(y = TMIN * 5, color = "red"), size = 1) +  # Line for Precip
+  geom_line(aes(y = cfs, color = "blue"), size = 1) + # cfs 
+  geom_line(aes(y = TMIN * 5, color = "red"), size = 1) +  
   scale_y_continuous(
     name = "Volume (cubic ft/s)",
     sec.axis = sec_axis(~ . , name = "")  # Secondary axis
@@ -23,23 +23,27 @@ ggplot(data %>%
   theme(legend.position = "bottom")  
 
 # Start with TMIN input and find model for that
-x <- ts(data$TMIN, start = data$datetime[1], frequency = 365)
-plot(decompose(ts(data$TMIN, start = data$datetime[1], frequency = 365)))
+# experiment with other vars via X_INPUT
+X_INPUT = "PRCP"
+x <- ts(data[X_INPUT], start = data$datetime[1], frequency = 365)
+plot(decompose(ts(data[X_INPUT], start = data$datetime[1], frequency = 365)))
 
 par(mfrow = c(2, 1))
 acf(x, lag.max = 370)
 pacf(x, lag.max = 370)
 
-model <- arima(diff(x, lag=365), order = c(3, 0, 1), include.mean = FALSE)
+# model <- arima(diff(x, lag=365), order = c(3, 0, 1), include.mean = FALSE)# best for TMIN
+model <- arima(diff(x, lag=365), order = c(3, 0, 2), include.mean = FALSE)# best for PRCP
+
 # model <- auto.arima(
-#   x, 
+#   x,
 #   ic = "bic",
 #   seasonal = TRUE,
-#   parallel = TRUE,
+#   #parallel = TRUE, #only works on not windows
 #   stepwise = FALSE,
 #   num.cores =  parallel::detectCores() - 1,
 # )
-# BEST
+# BEST (x = TMIN)
 # ARIMA(3,0,1)(0,1,0)[365] 
 #Coefficients:
 #  ar1      ar2     ar3      ma1
@@ -47,29 +51,47 @@ model <- arima(diff(x, lag=365), order = c(3, 0, 1), include.mean = FALSE)
 #s.e.  0.1052   0.0725  0.0090   0.1056
 #sigma^2 = 3079:  log likelihood = -67007.11
 #AIC=134024.2   AICc=134024.2   BIC=134061.3
-tsdiag(model, gof.lag = 40)
+
+# BEST: x as PRCP
+# ARIMA(1,0,2) with non-zero mean 
+# 
+# Coefficients:
+#   ar1      ma1      ma2    mean
+# 0.9715  -0.7956  -0.1388  9.3849
+# s.e.  0.0052   0.0103   0.0090  0.5447
+# 
+# sigma^2 = 715:  log likelihood = -59724.56
+# AIC=119459.1   AICc=119459.1   BIC=119496.4
+model;tsdiag(model, gof.lag = 40)
 
 ###### whiten the output
 y <- diff(data$cfs, lag = 365)
-x <- diff(data$TMIN, lag = 365) # same transform as when I estimated the model
+x <- diff(data[X_INPUT], lag = 365) # same transform as when I estimated the model
+# phi1 <- as.numeric(model$coef[1])
+# phi2 <- as.numeric(model$coef[2])
+# phi3 <- as.numeric(model$coef[3])
+# theta1 <- as.numeric(model$coef[4])
+# ^ X_INPUT = TMIN
+# PRCP
 phi1 <- as.numeric(model$coef[1])
 phi2 <- as.numeric(model$coef[2])
 phi3 <- as.numeric(model$coef[3])
 theta1 <- as.numeric(model$coef[4])
-
+theta2 <- as.numeric(model$coef[5])
 
 # Apply AR part filtering to y
 ytilde <- stats::filter(y, filter = c(1, -phi1, -phi2, -phi3), method = "convolution", sides = 1)
 
-# Apply AR part filtering to w
+# apply AR part filtering to w
 w <- stats::filter(x, filter = c(1, -phi1, -phi2, -phi3), method = "convolution", sides = 1)
 
-# Remove the first 3 values due to AR filter initialization
+# remove first 3 values due to AR filter initialization
 n <- length(y)
 ytilde1 <- ytilde[seq(4, n)]
 w1 <- w[seq(4, n)]
 
 # apply MA(1) 
+#ytilde1 <- ytilde1 - theta1 * lag(ytilde1, k = 1) # TMIN
 ytilde1 <- ytilde1 - theta1 * lag(ytilde1, k = 1)
 w1 <- w1 - theta1 * lag(w1, k = 1)
 
@@ -80,7 +102,7 @@ w1 <- w1[-1]
 # Compute cross-correlation
 ccf_res <- ccf(ytilde1, w1, ylab = "CCF", lag.max = 40)
 plot(ccf_res, xaxt = 'n'); axis(1, at = seq(-40, 40, by = 2))
-# concerning that we have a significant corr at lag=-1
+# (input=TMIN)concerning that we have a significant corr at lag=-1 
 # but otherwise it looks good, there are significant leaders at 0, 1, 2
 # and it decays a bit, has me thinking models similar to:
 # yt = y0...y3 + x0...x3
@@ -105,12 +127,17 @@ summary(r_model)
 u_t <- r_model$residuals
 omega_filter <- c(r_model$coef[2], r_model$coef[3], 0, 0)
 eta_t <- stats::filter(u_t, filter = omega_filter, method = "recursive")
-plot(eta_t)
-acf(eta_t)
+plot(eta_t) # definitely still not stationary, finish the model anyhow and see how it does
+acf(eta_t) 
 pacf(eta_t)
 
+m_final <- auto.arima(eta_t, seasonal = FALSE)
+forecast(m_final, h=21)
+tsdiag(m_final)
 
 
+####################
+# Try using the TSA package instead in case I made a model error above
 
 
 

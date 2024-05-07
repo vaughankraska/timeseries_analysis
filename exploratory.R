@@ -102,6 +102,8 @@ ggplot(data, aes(x = datetime)) +
   ) +
   theme_minimal() +  
   theme(legend.position = "bottom")  
+ccf(data$PRCP, data$cfs)
+ccf(diff(data$PRCP, lag = 365), diff(data$cfs, lag = 365))
 
 ## SNOW
 ggplot(data, aes(x = datetime)) +
@@ -135,6 +137,8 @@ ggplot(data, aes(x = datetime)) +
   ) +
   theme_minimal() +  
   theme(legend.position = "bottom")  
+ccf(data$TMIN, data$cfs)
+ccf(diff(data$TMIN, lag = 365), diff(data$cfs, lag = 365), lag.max = 20)
 
 
 # TMAX
@@ -152,6 +156,7 @@ ggplot(data, aes(x = datetime)) +
   ) +
   theme_minimal() +  
   theme(legend.position = "bottom")  
+ccf(data$TMAX, data$cfs)
 
 
 # TMAX * precip
@@ -173,7 +178,7 @@ ggsave(
   height = 5,
   dpi = 300
 )
-
+ccf((data$TMIN_PRCP), (data$cfs))
 
 #### Correlation between vars:
 cor_matrix <- cor(data[c("cfs", "PRCP", "SNOW", "TMAX", "TMIN", "TMAX_PRCP", "TMIN_PRCP")], use = "complete.obs")
