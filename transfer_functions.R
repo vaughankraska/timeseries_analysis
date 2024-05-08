@@ -8,8 +8,8 @@ ggplot(data %>%
          dplyr::filter(datetime >= as.Date("2015-03-01")) %>%
          dplyr::filter(datetime <= as.Date("2015-07-01")),
        aes(x = datetime)) +
-  geom_line(aes(y = cfs, color = "blue"), size = 1) + # cfs 
-  geom_line(aes(y = TMIN * 5, color = "red"), size = 1) +  
+  geom_line(aes(y = cfs), size = 1) + # cfs 
+  geom_line(aes(y = TMIN_PRCP/3.5, color = "red"), size = 1) +  
   scale_y_continuous(
     name = "Volume (cubic ft/s)",
     sec.axis = sec_axis(~ . , name = "")  # Secondary axis
@@ -142,31 +142,45 @@ rm(list = ls())
 library(TSA)
 library(ggplot2)
 
-data = readRDS("data/data_final.rds")
+data <- readRDS("data/data_final.rds")
 x <- ts(data$PRCP, start = data$datetime[1], frequency = 365)
 
 
 acf(x, lag.max = 365)
+acf(diff(x, lag = 365), lag.max = 365)
 pacf(x, lag.max = 365)
-ccf(diff(data$PRCP, lag = 365), diff(data$cfs, lag = 365))
+pacf(diff(x, lag = 365), lag.max = 365)
+ccf(data$PRCP, data$cfs, lag.max = 176)
+ccf(diff(data$PRCP, lag = 365), diff(data$cfs, lag = 365), lag.max = 176)
 
+l <- -.8
+y <- BoxCox(data$cfs, lambda = l)
+plot(diff(y)^2)
+plot(diff(data$cfs)^2)
+acf(y, lag.max = 365)
+acf(diff(y, lag = 365), lag.max = 365)
+pacf(y, lag.max = 365)
+pacf(diff(y, lag = 365), lag.max = 365)
+ccf(data$PRCP, y, lag.max = 176)
+ccf(diff(data$PRCP, lag = 365), diff(y, lag = 365), lag.max = 176)
 # BEGIN Transfer Models using TSA Package
-y <- diff(data$cfs, lag = 365)
+# also normalize the variance with boxcox
+y <- diff(y, lag = 365)
 x <- diff(data$PRCP, lag = 365) # same transform as when I estimated the model
 n <- length(y)
-r <- 0
-s <- 5
+r <- 0 # autoregressive part of the transfer function. influence of past x on y
+s <- 9 # number of periods after which the effect of x is seen in y
 
 model <- TSA::arima(
   y,
-  order = c (3, 0, 1),
+  order = c (1, 0, 0),
   #seasonal = list(order = c(0, 1, 0), period)
   xtransf = x,
   transfer = list(c(r, s)), # our (r, s)
   include.mean = FALSE,
   method = "ML"
 ); lmtest::coeftest(model)
-# barplot(coef(model)[-(1:2)], las = 2, col = "blue")
+barplot(coef(model)[-(1:2)], las = 2, col = "blue")
 # tsdiag(model, gof.lag = 80, na.action = na.pass)
 u_t <- ts(model$residuals[seq(max(s, r)+1, n)])
 plot(u_t)
