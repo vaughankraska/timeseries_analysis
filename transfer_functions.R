@@ -9,7 +9,7 @@ ggplot(data %>%
          dplyr::filter(datetime <= as.Date("2015-07-01")),
        aes(x = datetime)) +
   geom_line(aes(y = cfs), size = 1) + # cfs 
-  geom_line(aes(y = TMIN_PRCP/3.5, color = "red"), size = 1) +  
+  geom_line(aes(y = PRCP * 3, color = "red"), size = 1) +  
   scale_y_continuous(
     name = "Volume (cubic ft/s)",
     sec.axis = sec_axis(~ . , name = "")  # Secondary axis
@@ -23,10 +23,8 @@ ggplot(data %>%
   theme(legend.position = "bottom")  
 
 # Start with TMIN input and find model for that
-# experiment with other vars via X_INPUT
-X_INPUT = "PRCP"
-x <- ts(data[X_INPUT], start = data$datetime[1], frequency = 365)
-plot(decompose(ts(data[X_INPUT], start = data$datetime[1], frequency = 365)))
+x <- ts(data$PRCP, start = data$datetime[1], frequency = 365)
+plot(decompose(ts(data$PRCP, start = data$datetime[1], frequency = 365)))
 
 par(mfrow = c(2, 1))
 acf(x, lag.max = 370)
@@ -66,7 +64,7 @@ model;tsdiag(model, gof.lag = 40)
 
 ###### whiten the output
 y <- diff(data$cfs, lag = 365)
-x <- diff(data[X_INPUT], lag = 365) # same transform as when I estimated the model
+x <- diff(data$PRCP, lag = 365) # same transform as when I estimated the model
 # phi1 <- as.numeric(model$coef[1])
 # phi2 <- as.numeric(model$coef[2])
 # phi3 <- as.numeric(model$coef[3])
@@ -145,7 +143,7 @@ library(ggplot2)
 data <- readRDS("data/data_final.rds")
 x <- ts(data$PRCP, start = data$datetime[1], frequency = 365)
 
-
+plot(x)
 acf(x, lag.max = 365)
 acf(diff(x, lag = 365), lag.max = 365)
 pacf(x, lag.max = 365)
@@ -153,10 +151,10 @@ pacf(diff(x, lag = 365), lag.max = 365)
 ccf(data$PRCP, data$cfs, lag.max = 176)
 ccf(diff(data$PRCP, lag = 365), diff(data$cfs, lag = 365), lag.max = 176)
 
-l <- -.8
-y <- BoxCox(data$cfs, lambda = l)
+l <- .8 # lambda = 1 doesnt transform the series
+y <- forecast::BoxCox(data$cfs, lambda = l)
 plot(diff(y)^2)
-plot(diff(data$cfs)^2)
+plot(y)
 acf(y, lag.max = 365)
 acf(diff(y, lag = 365), lag.max = 365)
 pacf(y, lag.max = 365)
@@ -165,20 +163,20 @@ ccf(data$PRCP, y, lag.max = 176)
 ccf(diff(data$PRCP, lag = 365), diff(y, lag = 365), lag.max = 176)
 # BEGIN Transfer Models using TSA Package
 # also normalize the variance with boxcox
-y <- diff(y, lag = 365)
+y <- diff(ts(y), lag = 365)
 x <- diff(data$PRCP, lag = 365) # same transform as when I estimated the model
 n <- length(y)
-r <- 0 # autoregressive part of the transfer function. influence of past x on y
-s <- 9 # number of periods after which the effect of x is seen in y
+r <- 2 # autoregressive part of the transfer function. influence of past x on y
+s <- 5 # number of periods after which the effect of x is seen in y
 
 model <- TSA::arima(
   y,
-  order = c (1, 0, 0),
+  order = c (2, 0, 0),
   #seasonal = list(order = c(0, 1, 0), period)
   xtransf = x,
   transfer = list(c(r, s)), # our (r, s)
   include.mean = FALSE,
-  method = "ML"
+  method = "CSS-ML"
 ); lmtest::coeftest(model)
 barplot(coef(model)[-(1:2)], las = 2, col = "blue")
 # tsdiag(model, gof.lag = 80, na.action = na.pass)
@@ -189,10 +187,11 @@ pacf(u_t)
 
 model_e <- stats::arima(
   u_t,
-  order = c(1, 0, 0),
-  seasonal = list(order = c(0L, 0L, 0L), period = NA),
+  order = c(2, 0, 1),
+  seasonal = list(order = c(0, 0, 0), period = NA),
+  include.mean = FALSE
 ); lmtest::coeftest(model_e)
-
+tsdiag(model_e)
 
 
 
