@@ -79,3 +79,47 @@ df_final$TMIN_PRCP = df_final$TMIN * df_final$PRCP
 # Save file as final data
 saveRDS(df_final, "data/data_final.rds")
 
+# create weekly version dataset
+df_final_weekly <- df_final
+df_final_weekly$week <- lubridate::floor_date(
+  df_final_weekly$datetime,
+  unit = "week",
+  week_start = 1
+)
+df_final_weekly <- df_final_weekly %>%
+  dplyr::group_by(week) %>%
+  dplyr::summarise(
+    datetime = min(datetime, na.rm = TRUE),
+    cfs = mean(cfs, na.rm = TRUE),
+    PRCP = sum(PRCP, na.rm = TRUE),
+    TMAX = max(TMAX, na.rm = TRUE),
+    TMIN = min(TMIN, na.rm = TRUE),
+    SNOW = sum(SNOW, na.rm = TRUE),
+    TMAX_PRCP = mean(TMAX_PRCP, na.rm = TRUE),
+    TMIN_PRCP = mean(TMIN_PRCP, na.rm = TRUE)
+  )
+saveRDS(df_final_weekly, "data/data_final_weekly.rds")
+
+# create monthly dataset
+df_final_monthly <- df_final
+df_final_monthly$month <- lubridate::floor_date(
+  df_final_monthly$datetime,
+  unit = "month",
+)
+df_final_monthly <- df_final_monthly %>%
+  dplyr::group_by(month) %>%
+  dplyr::summarise(
+    datetime = min(datetime, na.rm = TRUE),
+    cfs = mean(cfs, na.rm = TRUE),
+    PRCP = sum(PRCP, na.rm = TRUE),
+    TMAX = max(TMAX, na.rm = TRUE),
+    TMIN = min(TMIN, na.rm = TRUE),
+    SNOW = sum(SNOW, na.rm = TRUE),
+    TMAX_PRCP = mean(TMAX_PRCP, na.rm = TRUE),
+    TMIN_PRCP = mean(TMIN_PRCP, na.rm = TRUE)
+  )
+
+saveRDS(df_final_monthly, "data/data_final_monthly.rds")
+
+
+

@@ -187,4 +187,45 @@ cor_with_y
 
 
 
+######################################################
+# weekly data
+data_weekly = readRDS("data/data_final_weekly.rds")
+ggplot(data_weekly, aes(x = week, y = cfs, group = lubridate::year(datetime), color = factor(lubridate::year(datetime)))) +
+  geom_line(alpha = 0.8) + 
+  labs(
+    title = "Discharge Weekly",
+    x = "Day of Year",
+    y = "Discharge (cubic ft/s)",
+    color = "Year"  
+  ) +
+  theme_minimal()
 
+acf(ts(data_weekly$cfs, frequency = 52))
+pacf(ts(data_weekly$cfs, frequency = 52))
+
+acf(diff(data_weekly$cfs, lag = 52))
+pacf(diff(data_weekly$cfs, lag = 52))
+
+ccf(data_weekly$PRCP, data_weekly$cfs)
+ccf(diff(data_weekly$PRCP, lag = 52), diff(data_weekly$cfs, lag = 52))
+
+ccf(data_weekly$TMIN_PRCP, data_weekly$cfs)
+ccf(diff(data_weekly$TMIN_PRCP, lag = 52), diff(data_weekly$cfs, lag = 52))
+#####################################################
+data_monthly <- readRDS("data/data_final_monthly.rds")
+
+ggplot(data_monthly, aes(x = month, y = cfs, group = lubridate::year(datetime), color = factor(lubridate::year(datetime)))) +
+  geom_line(alpha = 0.8) + 
+    labs(
+    title = "Discharge Monthly",
+    x = "Day of Year",
+    y = "Discharge (cubic ft/s)",
+    color = "Year"  
+  ) +
+  theme_minimal()
+
+acf(ts(data_monthly$cfs, frequency = 12))
+pacf(ts(data_monthly$cfs, frequency = 12))
+
+acf(diff(data_monthly$cfs, lag = 12))
+pacf(diff(data_monthly$cfs, lag = 12))
