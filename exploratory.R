@@ -9,10 +9,12 @@ str(data)
 ggplot(data, aes(x=datetime, y=cfs)) +
   geom_line() +
   labs(
-    title="Gallatin River Discharge 1981-2024", 
+    title="Gallatin River Discharge 1989-2024", 
     x="Year", 
     y = "Volume (cubic ft/s)"
   )
+#ggsave("plots/discharge_full.png", plot = p)
+
 # variance over time
 plot(tail(data$datetime, -1), diff(data$cfs)^2, main = "Estimated Daily Variance")
 
@@ -91,10 +93,6 @@ PRECIP_SCALE = 5
 ggplot(data, aes(x = datetime)) +
   geom_line(aes(y = cfs, color = "blue"), size = 1) +  # Line for cfs
   geom_line(aes(y = PRCP, color = "red"), size = 1) +  # Line for Precip
-  scale_y_continuous(
-    name = "Volume (cubic ft/s)",
-    sec.axis = sec_axis(~ . , name = "Precipitation (dc) * 5")  # Secondary axis
-  ) +
   labs(
     title = "Time Series Runoff (cubic ft/s) and Precip",
     x = "Date",

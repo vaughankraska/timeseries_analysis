@@ -98,8 +98,8 @@ ytilde1 <- ytilde1[-1]
 w1 <- w1[-1]
 
 # Compute cross-correlation
-ccf_res <- ccf(ytilde1, w1, ylab = "CCF", lag.max = 40)
-plot(ccf_res, xaxt = 'n'); axis(1, at = seq(-40, 40, by = 2))
+ccf_res <- ccf(ytilde1, w1, ylab = "CCF", lag.max = 365)
+plot(ccf_res, xaxt = 'n', main = "ytilde1 & w1 for PRCP Input"); axis(1, at = seq(-40, 40, by = 2))
 # (input=TMIN)concerning that we have a significant corr at lag=-1 
 # but otherwise it looks good, there are significant leaders at 0, 1, 2
 # and it decays a bit, has me thinking models similar to:
@@ -125,12 +125,11 @@ summary(r_model)
 u_t <- r_model$residuals
 omega_filter <- c(r_model$coef[2], r_model$coef[3], 0, 0)
 eta_t <- stats::filter(u_t, filter = omega_filter, method = "recursive")
-plot(eta_t) # definitely still not stationary, finish the model anyhow and see how it does
+plot(eta_t, main = "Residuals eta_t") # definitely still not stationary, finish the model anyhow and see how it does
 acf(eta_t) 
 pacf(eta_t)
 
 m_final <- auto.arima(eta_t, seasonal = FALSE)
-forecast(m_final, h=21)
 tsdiag(m_final)
 
 
