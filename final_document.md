@@ -1,7 +1,7 @@
 ---
 title: "Forecasting Spring Runoff Via Transfer Functions"
 author: "Finn Vaughankraska"
-date: "2024-05-09"
+date: "2024-05-15"
 output: 
   pdf_document:
     keep_md: true
@@ -71,7 +71,7 @@ The above two plots show how the two variables, precipitation (PRCP) and dischar
 
 
 # Baseline Model
-Before implementing transfer functions, the researcher thought it important to try a simpler model and identify shortcomings and failures before moving onto transfer functions. Given the findings of exploratory analysis, a set of SARIMA models were fit to the discharge time series. During the model selection phase, evidence was pointing to the $daily$ series being poorly modeled by `ARIMA` family models. At this point it seemed the best route would be to smooth the data by aggregating from the daily level to weekly. A `SARIMA(2, 0, 1)X(0, 1, 0)[52]` model gave the best diagnostics but failed to have stationary and normal residuals. The 20 step ahead forecast of the baseline `SARIMA` model are visualized below.
+Before implementing transfer functions, the researcher thought it important to try a simpler model and identify shortcomings and failures before moving onto transfer functions. Given the findings of exploratory analysis, a set of SARIMA models were fit to the discharge time series. During the model selection phase, evidence was pointing to the $daily$ series being poorly modeled by `ARIMA` family models. At this point it seemed the best route would be to smooth the data by aggregating from the daily level to weekly. A `SARIMA(2, 0, 1)X(0, 1, 0)[52]` model gave the best diagnostics but failed to have stationary and normal residuals. The 20 step ahead forecast of the baseline `SARIMA` model are visualized below. Note that while the `ar1` estimate below may not be statistically significant, it appeared to hold practical significance. Other models with all statistically significant coefficients performed poorer in achieving stationary and normal residuals fits for the series.
 
 ![](plots/sarima_20_forecast.pdf){width=.9}
 
@@ -87,17 +87,17 @@ ma1 0.725535   0.097648  7.4301 1.085e-13 ***
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 ```
 
-![](plots/sarima_301_diag.png){width=.9}
+![](plots/sarima_301_check.png){width=.9}
 
-![](plots/sarima_301_qq.png){width=.9}
-Although the forecast for weekly discharge looks promising and captures the seasonal peak that we expect this year, the residuals fail to be stationary and normal. This is evidence that the confidence intervals we have set forth can be misleading as they fail the normality assumption and we can have estimates outside the expected distribution. 
+![](plots/sarima_301_acf_qq.png){width=.9}
+Although the forecast for weekly discharge looks promising and captures the seasonal peak that we expect this year, the residuals fail to be stationary and normal. The non-normality of the residuals can be seen in the histogram and clearly heavy-tailed QQ plot. As for the stationarity of residuals, we can see there are still regular spikes in the top residual plot which are also seen in the 52 lag ACF plot. Besides significant autocorrelation at the lag 52, there are additional significant autocorrelations leading up to it. A Ljung-Box test p-value of less than 2.2e-16 also provides strong evidence of significant autocorrelation in the residuals. All the aforementioned diagnostics indicate that the confidence intervals we have established may be misleading, as they violate the normality assumption and may yield estimates outside the expected distribution. Additionally the presence of non-stationary and correlated residuals imply that the model may not adequately capture all the underlying patterns and dynamics in the time series.
 
-Fitting the simpler `SARIMA` model before implementing the transfer functions gave several helpful insights. Namely that the autoregressive family of models were failing to represent the discharge time series well. The series is long and has extreme periodic variance (which can be seen in the above residuals still). Logging the series and performing Box-Cox transformations on the series was marginally helpful for finding a model but were by no means a solution. 
+Fitting simpler `SARIMA` models before implementing the transfer functions gave several helpful insights. Namely that the autoregressive family of models were failing to represent the discharge time series well. The series is long and has extreme periodic variance (which can be seen in the above residuals still). Logging the series and performing Box-Cox transformations on the series was marginally helpful for finding a model but were by no means a solution. 
 
 # A Model Implementing Transfer Functions
 Despite `ARIMA` and `SARIMA` models proving difficult to properly model the series, the researcher moved forward with attempting to forecast Gallatin River discharge with transfer functions. Considering transfer functions can account for the affects of an input on a separate output series, perhaps the extreme variance during peak runoff could help be accounted for by precipitation as an input. Multiple inputs were considered (precipitation, daily high and low temperature, as well as their interactions were tested), but precipitation showed the best results in terms of strong evidence as a leading variable, domain knowledge, and end residuals. 
 
-In order to whiten the output variable (discharge) a `SARIMA(3, 0, 2)X(0, 1, 0)` model was fit to the input variable (precipitation). The output variable was then whitened using $\tilde{y}_t = \alpha(B)w_t + \tilde{\eta}_t$ with estimated parameters $\phi_1 = 0.08$, $\phi_2 = -0.006$, $\phi_3 = -0.02$, $\theta_1 = -0.08$, and $\theta_2 = -0.007$. None of the aforementioned estimates are statistically significant and were the only set of parameters that yielded half-decent diagnostics. The cross correlation of $\tilde{y}$ and $w$ was then analyzed using the following plots and inform the intermediate regression:
+In order to whiten the output variable (discharge) a `SARIMA(3, 0, 2)X(0, 1, 0)` model was fit to the input variable (precipitation). The output variable was then whitened using $\tilde{y}_t = \alpha(B)w_t + \tilde{\eta}_t$ with estimated parameters $\phi_1 = 0.08$ (.70), $\phi_2 = -0.006$ (.63), $\phi_3 = -0.03$ (.09), $\theta_1 = -0.08$ (.70), and $\theta_2 = -0.006$ (.53) where the standard errors are in parentheses. None of the aforementioned estimates are statistically significant and were one of the only set of parameters that yielded half-decent diagnostics. The cross correlation of $\tilde{y}$ and $w$ was then analyzed using the following plots and inform the intermediate regression:
 $$
 \omega (B) y_t = \delta(B) B^d x_t + \omega(B) \eta_t
 $$
@@ -127,7 +127,10 @@ Residual standard error: 170.7 on 12324 degrees of freedom
 Multiple R-squared:  0.9384,	Adjusted R-squared:  0.9383 
 F-statistic: 6.253e+04 on 3 and 12324 DF,  p-value: < 2.2e-16
 ```
-And gave residuals in the form of:
+
+Where `y1` and `y2` represent one and two time steps behind the current value of the discharge data `y0`, and `x2` represents the two step behind value of the input variable (precipitation).
+
+The above model gave residuals in the form of:
 
 ![](plots/residuals_eta_t.png){width=.90}
 

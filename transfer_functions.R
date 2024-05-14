@@ -1,4 +1,5 @@
 # USE transfer function to forecast runoff
+rm(list = ls())
 library(forecast)
 library(ggplot2)
 
@@ -60,7 +61,7 @@ model <- arima(diff(x, lag=365), order = c(3, 0, 2), include.mean = FALSE)# best
 # 
 # sigma^2 = 715:  log likelihood = -59724.56
 # AIC=119459.1   AICc=119459.1   BIC=119496.4
-model;tsdiag(model, gof.lag = 40)
+model;tsdiag(model, gof.lag = 365)
 
 ###### whiten the output
 y <- diff(data$cfs, lag = 365)

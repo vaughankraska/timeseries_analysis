@@ -43,6 +43,7 @@ ar <- TSA::arima(
 ); lmtest::coeftest(ar)
 qqnorm(ar$residuals)
 hist(ar$residuals)
+acf(ar$residuals, lag.max = 53)
 tsdiag(ar, gof.lag = 52) # best SARIMA(2, 0, 1)(0, 1, 0)[52], aic = -345
 #still not perfectly stationary residuals
 
@@ -81,13 +82,15 @@ me <- forecast::auto.arima(
 
 
 #plot forecast from earlier SARIMA(2, 0, 1) X (0, 1, 0)[52]
-m <- stats::arima(
+m <- Arima(
   ts(log(data$cfs), start = data$datetime[1]),
   order = c(2, 0, 1),
   seasonal = list(order = c(0, 1, 0), period = 52),
   include.mean = FALSE,
 ); lmtest::coeftest(m);
 tsdiag(m, gof.lag = 52)
+checkresiduals(m, lag = 52)
+plot(resid_plot, lag = 52, type = "acf")
 obs_data <- data.frame(
   time = time(ts(log(data$cfs), start = data$datetime[1])),
   value = as.numeric(ts(log(data$cfs), start = data$datetime[1]))
