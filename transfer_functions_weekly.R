@@ -90,7 +90,8 @@ m <- Arima(
 ); lmtest::coeftest(m);
 tsdiag(m, gof.lag = 52)
 checkresiduals(m, lag = 52)
-plot(resid_plot, lag = 52, type = "acf")
+acf(m$residuals, lag.max = 52)
+# plot(resid_plot, lag = 52, type = "acf")
 obs_data <- data.frame(
   time = time(ts(log(data$cfs), start = data$datetime[1])),
   value = as.numeric(ts(log(data$cfs), start = data$datetime[1]))

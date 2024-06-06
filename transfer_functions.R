@@ -99,7 +99,8 @@ ytilde1 <- ytilde1[-1]
 w1 <- w1[-1]
 
 # Compute cross-correlation
-ccf_res <- ccf(ytilde1, w1, ylab = "CCF", lag.max = 365)
+ccf_res <- ccf(ytilde1, w1, ylab = "CCF")
+# ccf_res <- ccf(ytilde1, w1, ylab = "CCF", lag.max = 365)
 plot(ccf_res, xaxt = 'n', main = "ytilde1 & w1 for PRCP Input"); axis(1, at = seq(-40, 40, by = 2))
 # (input=TMIN)concerning that we have a significant corr at lag=-1 
 # but otherwise it looks good, there are significant leaders at 0, 1, 2

@@ -1,4 +1,5 @@
 # Exploratory analysis script
+rm(list = ls())
 library(ggplot2)
 library(forecast)
 library(tseries)
@@ -29,6 +30,16 @@ ggplot(data %>%
     x="Year", 
     y = "Volume (cubic ft/s)"
   )
+
+temp <- ts(data[c("cfs", "PRCP", "TMIN")], 
+           names = c("cfs", "PRCP", "TMIN"),
+           start = c(1989, 212),
+           frequency = 365
+           )
+# pair of prcp and cfs
+ggplot2::autoplot(tail(temp, 800), facets=TRUE) +
+  xlab("Year") + ylab("") +
+  ggtitle("Discharge, Precipitation, and Low Temp")
 
 # look at distribution across day of year
 df <- data[c("datetime", "cfs")]
@@ -100,8 +111,15 @@ ggplot(data, aes(x = datetime)) +
   ) +
   theme_minimal() +  
   theme(legend.position = "bottom")  
-ccf(data$PRCP, data$cfs)
+ccf(data$PRCP, data$cfs, lag.max = 350)
 ccf(diff(data$PRCP, lag = 365), diff(data$cfs, lag = 365))
+ccf(diff(data$PRCP, lag = 365), diff(data$cfs, lag = 365), lag.max = 365)
+
+autoplot(tail(temp[,2], 800),) +
+  xlab("Year") + ylab("") +
+  ggtitle("Precipitation")
+ggAcf(data$PRCP, lag.max = 365)
+ggPacf(data$PRCP, lag.max = 365)
 
 ## SNOW
 ggplot(data, aes(x = datetime)) +
@@ -135,7 +153,7 @@ ggplot(data, aes(x = datetime)) +
   ) +
   theme_minimal() +  
   theme(legend.position = "bottom")  
-ccf(data$TMIN, data$cfs)
+ccf(data$TMIN, data$cfs, lag.max = 365)
 ccf(diff(data$TMIN, lag = 365), diff(data$cfs, lag = 365), lag.max = 20)
 
 
@@ -227,3 +245,109 @@ pacf(ts(data_monthly$cfs, frequency = 12))
 
 acf(diff(data_monthly$cfs, lag = 12))
 pacf(diff(data_monthly$cfs, lag = 12))
+
+
+
+########################
+# main problem: making daily sationary
+cfs <- ts(data$cfs, 
+           names = c("cfs"),
+           start = c(1989, 212),
+           frequency = 365
+           )
+
+autoplot(tail(cfs, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+
+# remove seasonality
+cfs_sdiff1 <- diff(cfs, lag = 365)
+
+autoplot(tail(cfs_sdiff1, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+
+# still have seasonal spikes but at least some of the seasonality is gone...
+plot(decompose(cfs_sdiff1, type = "multiplicative"))
+plot(decompose(cfs_sdiff1, type = "additive"))
+###
+# what to do then?
+###
+# 1: try more seasonal differences?
+cfs_sdiff2 <- diff(cfs_sdiff1, lag = 365)
+autoplot(tail(cfs_sdiff2, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+plot(decompose(cfs_sdiff2, type = "multiplicative"))
+plot(decompose(cfs_sdiff2, type = "additive"))
+
+cfs_sdiff3 <- diff(cfs_sdiff2, lag = 365)
+autoplot(tail(cfs_sdiff3, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+plot(decompose(cfs_sdiff3, type = "multiplicative"))
+plot(decompose(cfs_sdiff3, type = "additive"))
+
+# keep going?
+cfs_sdiff4 <- diff(cfs_sdiff3, lag = 365)
+autoplot(tail(cfs_sdiff4, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+plot(decompose(cfs_sdiff4, type = "multiplicative"))
+plot(decompose(cfs_sdiff4, type = "additive"))
+
+cfs_sdiff5 <- diff(cfs_sdiff4, lag = 365)
+cfs_sdiff6 <- diff(cfs_sdiff5, lag = 365)
+cfs_sdiff7 <- diff(cfs_sdiff6, lag = 365)
+cfs_sdiff8 <- diff(cfs_sdiff7, lag = 365)
+cfs_sdiff9 <- diff(cfs_sdiff8, lag = 365)
+cfs_sdiff10 <- diff(cfs_sdiff9, lag = 365)
+autoplot(tail(cfs_sdiff10, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+plot(decompose(cfs_sdiff10, type = "multiplicative"))
+plot(decompose(cfs_sdiff10, type = "additive"))
+# Hmmm that doesn't seem to help...
+
+# 2. Try a transform? Box cox or log could normalize the jumps
+cfs_bc <- BoxCox(cfs, lambda = "auto")
+# full
+autoplot(cfs_bc) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+#zoomed
+autoplot(tail(cfs_bc, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+plot(decompose(cfs_bc, type = "multiplicative"))
+plot(decompose(cfs_bc, type = "additive"))
+# and then seasonal difference
+cfs_bc_sdiff1 <- diff(cfs_bc, lag = 365)
+autoplot(cfs_bc_sdiff1) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+autoplot(tail(cfs_bc_sdiff1, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+plot(decompose(cfs_bc_sdiff1, type = "multiplicative"))
+plot(decompose(cfs_bc_sdiff1, type = "additive"))
+acf(cfs_bc_sdiff1, lag.max = 365)
+pacf(cfs_bc_sdiff1, lag.max = 365)
+# still have seasonal periodic jumps at lag 365
+# again try more differences
+cfs_bc_sdiff2 <- diff(cfs_bc_sdiff1, lag = 365)
+autoplot(cfs_bc_sdiff2) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+autoplot(tail(cfs_bc_sdiff2, 1000)) +
+  xlab("Year") + ylab("") +
+  ggtitle("CFS")
+
+plot(decompose(cfs_bc_sdiff2, type = "multiplicative"))
+plot(decompose(cfs_bc_sdiff2, type = "additive"))
+# seasonality is getting worse
+
+# my conclusion: I cannot seem to find a way to remove the seasonality
+# which makes the data non-stationary and consequently the models fail.
+
+# this pattern is common for the other covariates collected as well.
